@@ -36,65 +36,25 @@ pipeline {
 
 
         stage('Test Jenkins Credentials') {
-    steps {
-        withCredentials([
-            usernamePassword(
-                credentialsId: 'docker-demo-credentials',
-                usernameVariable: 'DOCKER_USER',
-                passwordVariable: 'DOCKER_PASS'
-            )
-        ]) {
-            sh '''
-                if [ -n "$DOCKER_USER" ] && [ -n "$DOCKER_PASS" ]; then
-                    echo "SUCCESS: Jenkins credentials retrieved securely!"
-                else
-                    echo "ERROR: Credentials unavailable!"
-                    exit 1
-                fi
-            '''
-        }
-    }
-}
-
-	stage('Push Docker Image') {
-    steps {
-        withCredentials([
-            usernamePassword(
-                credentialsId: 'dockerhub-credentials',
-                usernameVariable: 'DOCKERHUB_USER',
-                passwordVariable: 'DOCKERHUB_TOKEN'
-            )
-        ]) {
-            sh '''
-                IMAGE_NAME="$DOCKERHUB_USER/employee-api"
-
-                echo "Logging in to Docker Hub..."
-
-                echo "$DOCKERHUB_TOKEN" | docker login \
-                    -u "$DOCKERHUB_USER" \
-                    --password-stdin
-
-                echo "Tagging Docker image..."
-
-                docker tag employee-api:${BUILD_NUMBER} \
-                    ${IMAGE_NAME}:${BUILD_NUMBER}
-
-                docker tag employee-api:${BUILD_NUMBER} \
-                    ${IMAGE_NAME}:latest
-
-                echo "Pushing versioned image..."
-
-                docker push ${IMAGE_NAME}:${BUILD_NUMBER}
-
-                echo "Pushing latest image..."
-
-                docker push ${IMAGE_NAME}:latest
-
-                docker logout
-            '''
-        }
-    }
-}
+	    steps {
+		withCredentials([
+		    usernamePassword(
+		        credentialsId: 'docker-demo-credentials',
+		        usernameVariable: 'DOCKER_USER',
+		        passwordVariable: 'DOCKER_PASS'
+		    )
+		]) {
+		    sh '''
+		        if [ -n "$DOCKER_USER" ] && [ -n "$DOCKER_PASS" ]; then
+		            echo "SUCCESS: Jenkins credentials retrieved securely!"
+		        else
+		            echo "ERROR: Credentials unavailable!"
+		            exit 1
+		        fi
+		    '''
+		}
+	    }
+	}
         
 	stage('Build Docker Image') {
             steps {
@@ -103,6 +63,48 @@ pipeline {
                 '''
             }
         }
+
+        
+        stage('Push Docker Image') {
+	    steps {
+		withCredentials([
+		    usernamePassword(
+		        credentialsId: 'dockerhub-credentials',
+		        usernameVariable: 'DOCKERHUB_USER',
+		        passwordVariable: 'DOCKERHUB_TOKEN'
+		    )
+		]) {
+		    sh '''
+		        IMAGE_NAME="$DOCKERHUB_USER/employee-api"
+
+		        echo "Logging in to Docker Hub..."
+
+		        echo "$DOCKERHUB_TOKEN" | docker login \
+		            -u "$DOCKERHUB_USER" \
+		            --password-stdin
+
+		        echo "Tagging Docker image..."
+
+		        docker tag employee-api:${BUILD_NUMBER} \
+		            ${IMAGE_NAME}:${BUILD_NUMBER}
+
+		        docker tag employee-api:${BUILD_NUMBER} \
+		            ${IMAGE_NAME}:latest
+
+		        echo "Pushing versioned image..."
+
+		        docker push ${IMAGE_NAME}:${BUILD_NUMBER}
+
+		        echo "Pushing latest image..."
+
+		        docker push ${IMAGE_NAME}:latest
+
+		        docker logout
+		    '''
+		}
+	    }
+	}
+
 
         stage('Deploy Application') {
             steps {

@@ -6,7 +6,7 @@ def test_home():
     response = client.get("/")
 
     assert response.status_code == 200
-    assert response.json["status"] == "Running"
+    assert response.json["status"] == "Employee API is running - Jenkins webhook test successful!"
 
 
 def test_health():

@@ -103,12 +103,24 @@ pipeline {
 			"""
                     // Identify the currently running image
                     
-                    def previousImage = sh(
-    			script: 'docker inspect "$CONTAINER_NAME" --format="{{.Config.Image}}" 2>/dev/null || true',
-    				returnStdout: true
+                    //def previousImage = sh(
+    			//script: 'docker inspect "$CONTAINER_NAME" --format="{{.Config.Image}}" 2>/dev/null || true',
+    				//returnStdout: true
+			//).trim()
+
+			//echo "Previous image captured: ${previousImage ?: 'None'}"
+			
+			
+			def previousImage = sh(
+			    script: 'docker inspect "$CONTAINER_NAME" --format "{{.Config.Image}}"',
+			    returnStdout: true
 			).trim()
 
-			echo "Previous image captured: ${previousImage ?: 'None'}"
+			echo "DEBUG: Captured previous image = [${previousImage}]"
+
+			if (!previousImage) {
+			    error("Could not capture the previous Docker image")
+			}
 
                     // Deploy new image and perform health check
 

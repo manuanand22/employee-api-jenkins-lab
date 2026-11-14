@@ -11,11 +11,7 @@ employees = [
 
 @app.route("/")
 def home():
-    return jsonify({
-        "application": "Employee Management API",
-        "version": "1.0",
-        "status": "Running"
-    })
+    return jsonify({"message": "Employee API is running - Jenkins webhook test successful!"})
 
 
 @app.route("/health")

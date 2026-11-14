@@ -6,7 +6,6 @@ pipeline {
         IMAGE_NAME = 'employee-api'
         CONTAINER_NAME = 'employee-api-ci'
         APP_PORT = '5001'
-        PREVIOUS_IMAGE = ''
     }
 
     stages {
@@ -103,16 +102,13 @@ pipeline {
 			    docker inspect "$CONTAINER_NAME" --format='{{.Config.Image}}'
 			"""
                     // Identify the currently running image
+                    
+                    def previousImage = sh(
+    			script: 'docker inspect "$CONTAINER_NAME" --format="{{.Config.Image}}" 2>/dev/null || true',
+    				returnStdout: true
+			).trim()
 
-                    env.PREVIOUS_IMAGE = sh(
-                        script: """
-                            docker inspect ${CONTAINER_NAME} \
-                            --format='{{.Config.Image}}' 2>/dev/null || true
-                        """,
-                        returnStdout: true
-                    ).trim()
-
-                    echo "Previous image: ${env.PREVIOUS_IMAGE ?: 'None'}"
+			echo "Previous image captured: ${previousImage ?: 'None'}"
 
                     // Deploy new image and perform health check
 
@@ -154,41 +150,44 @@ pipeline {
 
                         echo "NEW DEPLOYMENT FAILED!"
 
-                        if (env.PREVIOUS_IMAGE?.trim()) {
+                        if (previousImage) {
 
-                            echo "Starting automatic rollback to ${env.PREVIOUS_IMAGE}"
+                            echo "Starting automatic rollback to ${previousImage}"
 
-                            def rollbackStatus = sh(
-                                script: '''
-                                    set -e
+                            def rollbackStatus
 
-                                    docker rm -f "$CONTAINER_NAME" \
-                                        >/dev/null 2>&1 || true
+				withEnv(["PREVIOUS_IMAGE=${previousImage}"]) {
+				    rollbackStatus = sh(
+					script: '''
+					    set -e
 
-                                    docker run -d \
-                                        --name "$CONTAINER_NAME" \
-                                        -p "$APP_PORT:5000" \
-                                        "$PREVIOUS_IMAGE"
+					    docker rm -f "$CONTAINER_NAME" \
+						>/dev/null 2>&1 || true
 
-                                    for i in $(seq 1 15); do
+					    docker run -d \
+						--name "$CONTAINER_NAME" \
+						-p "$APP_PORT:5000" \
+						"$PREVIOUS_IMAGE"
 
-                                        if docker exec "$CONTAINER_NAME" python -c \
-                                        "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=3).read().decode())"
-                                        then
-                                            echo "Rollback successful!"
-                                            exit 0
-                                        fi
+					    for i in $(seq 1 15); do
 
-                                        echo "Waiting for previous version..."
-                                        sleep 2
-                                    done
+						if docker exec "$CONTAINER_NAME" python -c \
+						"import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=3).read().decode())"
+						then
+						    echo "Rollback successful!"
+						    exit 0
+						fi
 
-                                    docker logs "$CONTAINER_NAME" || true
+						echo "Waiting for previous version..."
+						sleep 2
+					    done
 
-                                    exit 1
-                                ''',
-                                returnStatus: true
-                            )
+					    docker logs "$CONTAINER_NAME" || true
+					    exit 1
+					''',
+					returnStatus: true
+				    )
+				}
 
                             if (rollbackStatus != 0) {
                                 error("CRITICAL: Deployment and rollback both failed!")

@@ -117,7 +117,7 @@ pipeline {
                             docker run -d \
                                 --name "$CONTAINER_NAME" \
                                 -p "$APP_PORT:5000" \
-                                "$IMAGE_NAME:$BUILD_NUMBER"
+                                "$IMAGE_NAME:$BUILD_NUMBER" sh -c 'sleep 300'
 
                             for i in $(seq 1 15); do
 

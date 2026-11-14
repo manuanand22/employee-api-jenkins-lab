@@ -56,29 +56,25 @@ pipeline {
         }
 
         stage('Health Check') {
-            steps {
-                sh '''
-                    python3 - <<'PY'
-import time
-import urllib.request
+    steps {
+        sh '''
+            for i in $(seq 1 15); do
+                if docker exec ${CONTAINER_NAME} python -c \
+                "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:5000/health', timeout=3).read().decode())"
+                then
+                    echo "Application health check successful!"
+                    exit 0
+                fi
 
-url = "http://localhost:5001/health"
+                echo "Waiting for application..."
+                sleep 2
+            done
 
-for attempt in range(15):
-    try:
-        response = urllib.request.urlopen(url, timeout=3)
-        print("Health check response:", response.read().decode())
-        print("Application deployed successfully!")
-        break
-    except Exception as error:
-        print(f"Attempt {attempt + 1}: {error}")
-        time.sleep(2)
-else:
-    raise SystemExit("Application health check failed")
-PY
-                '''
-            }
-        }
+            docker logs ${CONTAINER_NAME}
+            exit 1
+        '''
+    }
+}
     }
 
     post {

@@ -92,7 +92,16 @@ pipeline {
         stage('Deploy and Verify') {
             steps {
                 script {
+			echo "Checking existing deployment from Jenkins..."
 
+			sh """
+			    echo "Container name: $CONTAINER_NAME"
+			    echo "Docker containers matching the name:"
+			    docker ps -a --filter "name=$CONTAINER_NAME"
+
+			    echo "Inspecting previous deployment:"
+			    docker inspect "$CONTAINER_NAME" --format='{{.Config.Image}}'
+			"""
                     // Identify the currently running image
 
                     env.PREVIOUS_IMAGE = sh(

@@ -34,6 +34,29 @@ pipeline {
             }
         }
 
+
+        stage('Test Jenkins Credentials') {
+    steps {
+        withCredentials([
+            usernamePassword(
+                credentialsId: 'docker-demo-credentials',
+                usernameVariable: 'DOCKER_USER',
+                passwordVariable: 'DOCKER_PASS'
+            )
+        ]) {
+            sh '''
+                if [ -n "$DOCKER_USER" ] && [ -n "$DOCKER_PASS" ]; then
+                    echo "SUCCESS: Jenkins credentials retrieved securely!"
+                else
+                    echo "ERROR: Credentials unavailable!"
+                    exit 1
+                fi
+            '''
+        }
+    }
+}
+
+
         stage('Build Docker Image') {
             steps {
                 sh '''

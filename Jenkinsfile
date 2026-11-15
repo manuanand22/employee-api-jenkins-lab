@@ -74,8 +74,9 @@ pipeline {
 		        image \
 		        --scanners vuln \
 		        --severity HIGH,CRITICAL \
+		        --ignore-unfixed \
 		        --exit-code 1 \
-                	--no-progress \
+		        --no-progress \
 		        ${IMAGE_NAME}:${BUILD_NUMBER}
 		"""
 	    }

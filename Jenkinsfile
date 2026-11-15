@@ -82,6 +82,26 @@ pipeline {
 	    }
 	}
 
+
+	stage('Generate SBOM') {
+	    steps {
+		sh '''
+		    docker run --rm \
+		        -v /var/run/docker.sock:/var/run/docker.sock \
+		        -v trivy-cache:/root/.cache/ \
+		        -v jenkins_home:/var/jenkins_home \
+		        aquasec/trivy:0.76.2 \
+		        image \
+		        --format cyclonedx \
+		        --output "$WORKSPACE/employee-api-$BUILD_NUMBER-sbom.json" \
+		        employee-api:$BUILD_NUMBER
+		'''
+
+		archiveArtifacts artifacts: 'employee-api-*-sbom.json',
+		                 fingerprint: true
+	    }
+	}
+
         stage('Push Docker Image') {
             steps {
                 withCredentials([

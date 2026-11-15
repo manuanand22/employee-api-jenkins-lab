@@ -107,8 +107,7 @@ pipeline {
                     docker run -d \
                         --name ${CONTAINER_NAME} \
                         -p ${APP_PORT}:5000 \
-                        ${IMAGE_NAME}:${BUILD_NUMBER} \
-                        sh -c 'sleep 300'
+                        ${IMAGE_NAME}:${BUILD_NUMBER}
 
                     echo "Waiting for application health check..."
 

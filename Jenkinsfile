@@ -62,6 +62,23 @@ pipeline {
                 '''
             }
         }
+	
+	
+	stage('Trivy Security Scan') {
+	    steps {
+		sh """
+		    docker run --rm \
+		        -v /var/run/docker.sock:/var/run/docker.sock \
+		        -v trivy-cache:/root/.cache/ \
+		        aquasec/trivy:0.76.2 \
+		        image \
+		        --scanners vuln \
+		        --severity HIGH,CRITICAL \
+		        --no-progress \
+		        ${IMAGE_NAME}:${BUILD_NUMBER}
+		"""
+	    }
+	}
 
         stage('Push Docker Image') {
             steps {

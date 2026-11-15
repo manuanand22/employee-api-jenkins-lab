@@ -103,7 +103,6 @@ pipeline {
             def deployStatus = sh(
                 script: """
                     docker rm -f ${CONTAINER_NAME} || true
-
                     docker run -d \
                         --name ${CONTAINER_NAME} \
                         -p ${APP_PORT}:5000 \

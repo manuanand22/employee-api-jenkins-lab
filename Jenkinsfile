@@ -4,6 +4,7 @@ pipeline {
 
     environment {
         IMAGE_NAME = 'employee-api'
+	IMAGE_DIGEST = ''
         CONTAINER_NAME = 'employee-api-ci'
         APP_PORT = '5001'
     }
@@ -126,6 +127,35 @@ pipeline {
                 }
             }
         }
+
+	stage('Retrieve Image Digest') {
+	    steps {
+		script {
+		    withCredentials([
+		        usernamePassword(
+		            credentialsId: 'dockerhub-credentials',
+		            usernameVariable: 'DOCKERHUB_USER',
+		            passwordVariable: 'DOCKERHUB_TOKEN'
+		        )
+		    ]) {
+		        env.IMAGE_DIGEST = sh(
+		            script: '''
+		                docker image inspect \
+		                "$DOCKERHUB_USER/$IMAGE_NAME:$BUILD_NUMBER" \
+		                --format '{{index .RepoDigests 0}}' | cut -d '@' -f 2
+		            ''',
+		            returnStdout: true
+		        ).trim()
+		    }
+
+		    if (!env.IMAGE_DIGEST.startsWith('sha256:')) {
+		        error('Invalid or missing Docker image digest')
+		    }
+
+		    echo "Retrieved image digest: ${env.IMAGE_DIGEST}"
+		}
+	    }
+	}
 
       stage('Deploy and Verify') {
     steps {

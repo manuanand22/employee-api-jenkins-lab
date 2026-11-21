@@ -129,33 +129,42 @@ pipeline {
         }
 
 	stage('Retrieve Image Digest') {
-	    steps {
-		script {
-		    withCredentials([
-		        usernamePassword(
-		            credentialsId: 'dockerhub-credentials',
-		            usernameVariable: 'DOCKERHUB_USER',
-		            passwordVariable: 'DOCKERHUB_TOKEN'
-		        )
-		    ]) {
-		        env.IMAGE_DIGEST = sh(
-		            script: '''
-		                docker image inspect \
-		                "$DOCKERHUB_USER/$IMAGE_NAME:$BUILD_NUMBER" \
-		                --format '{{index .RepoDigests 0}}' | cut -d '@' -f 2
-		            ''',
-		            returnStdout: true
-		        ).trim()
-		    }
+    steps {
+        script {
+            withCredentials([
+                usernamePassword(
+                    credentialsId: 'dockerhub-credentials',
+                    usernameVariable: 'DOCKERHUB_USER',
+                    passwordVariable: 'DOCKERHUB_TOKEN'
+                )
+            ]) {
+                def repoDigest = sh(
+                    script: """
+                        docker image inspect \
+                        "\$DOCKERHUB_USER/\$IMAGE_NAME:\$BUILD_NUMBER" \
+                        --format '{{index .RepoDigests 0}}'
+                    """,
+                    returnStdout: true
+                ).trim()
 
-		    if (!env.IMAGE_DIGEST.startsWith('sha256:')) {
-		        error('Invalid or missing Docker image digest')
-		    }
+                echo "Raw repository digest: ${repoDigest}"
 
-		    echo "Retrieved image digest: ${env.IMAGE_DIGEST}"
-		}
-	    }
-	}
+                if (!repoDigest || !repoDigest.contains('@')) {
+                    error("Could not retrieve a valid repository digest. Raw output: ${repoDigest}")
+                }
+
+                def digest = repoDigest.substring(repoDigest.indexOf('@') + 1)
+
+                if (!digest.startsWith('sha256:')) {
+                    error("Invalid image digest: ${digest}")
+                }
+
+                env.IMAGE_DIGEST = digest
+                echo "Image digest successfully retrieved: ${env.IMAGE_DIGEST}"
+            }
+        }
+    }
+}
 
       stage('Deploy and Verify') {
     steps {
